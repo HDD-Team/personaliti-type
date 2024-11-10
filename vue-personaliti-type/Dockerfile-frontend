@@ -1,0 +1,22 @@
+# Используем Node.js в качестве базового образа
+FROM node:20.11.1
+
+# Устанавливаем рабочую директорию
+WORKDIR /app
+
+# Копируем package.json и package-lock.json для установки зависимостей
+COPY package*.json ./
+
+RUN npm install -g vite
+
+# Устанавливаем зависимости
+RUN npm install
+
+# Копируем все файлы проекта
+COPY . .
+
+# Собираем приложение
+RUN npm run build
+
+# Запускаем сервер
+CMD ["npm", "run", "dev"]

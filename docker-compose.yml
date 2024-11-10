@@ -1,0 +1,66 @@
+services:
+  web:
+    build: .
+    container_name: fastapi_app
+    env_file:
+      - ./docker_env.env
+    ports:
+      - "8011:8011"
+    volumes:
+      - ./uploads_files:/app/uploads_files
+    depends_on:
+      - db
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all  # или укажите конкретный индекс, например, 1, если нужен один GPU
+              capabilities: [gpu]
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all  # или конкретный индекс, например, 0
+    runtime: nvidia
+  
+  nginx:
+    image: nginx:latest
+    container_name: nginx_proxy
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+    depends_on:
+      - web
+      - frontend
+
+  db:
+    image: postgres:latest
+    container_name: postgres_db
+    environment:
+      POSTGRES_DB: hack_site
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 642519
+    ports:
+      - "5445:5445"
+    # healthcheck:
+    #   test: ["CMD-SHELL", "pg_isready -U your_user"]
+    #   interval: 10s
+    #   timeout: 5s
+    #   retries: 5
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backup_empty.sql:/docker-entrypoint-initdb.d/backup_empty.sql
+  
+  frontend:
+    build:
+      context: ./vue-personaliti-type
+      dockerfile: Dockerfile-frontend  # создайте Dockerfile с таким именем в корне vue-personaliti-type
+    container_name: frontend_app
+    ports:
+      - "5173:5173"  # порт для Vue-приложения
+    env_file:
+      - ./vue-personaliti-type/.env
+    depends_on:
+      - web
+
+volumes:
+  postgres_data:
